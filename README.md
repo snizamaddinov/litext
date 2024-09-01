@@ -10,7 +10,7 @@ Marisol is a lightweight text editor for the terminal, written in the C language
 
 To install Marisol, follow these steps:
 
-1. Clone the repository: `git clone https://github.com/your-username/marisol.git`
+1. Clone the repository: `git clone https://github.com/snizamaddinov/marisol.git`
 2. Navigate to the project directory: `cd marisol`
 3. Build the project: `make`
 4. Run Marisol: `./marisol`
