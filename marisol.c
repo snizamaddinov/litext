@@ -4,30 +4,42 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/ioctl.h>
 #include <termios.h>
 #include <unistd.h>
 
+/*** defines ***/
+
+#define CTRL_KEY(k) ((k) & 0x1f)
+
 /*** data ***/
 
-struct termios orig_termios;
+struct editorConfig {
+    struct termios orig_termios;
+};
+
+struct editorConfig E;
 
 /*** terminal ***/
 
-void die(const char *s){
+void die(const char *s) {
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
+
     perror(s);
     exit(1);
 }
 
-void disableRawMode(){
-    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios) == -1)
+void disableRawMode() {
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1)
         die("tcsetattr");
 }
 
-void enableRawMode(){ 
-    tcgetattr(STDIN_FILENO, &orig_termios);
+void enableRawMode() { 
+    tcgetattr(STDIN_FILENO, &E.orig_termios);
     atexit(disableRawMode);
 
-    struct termios raw = orig_termios;
+    struct termios raw = E.orig_termios;
     raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
     raw.c_oflag &= ~(OPOST);
     raw.c_cflag |= (CS8);
@@ -40,25 +52,77 @@ void enableRawMode(){
         die("tcsetattr");
 }
 
+char editorReadKey() {
+    int nread;
+    char c;
+    while ((nread = read(STDIN_FILENO, &c, 1)) != 1) {
+        if (nread == -1 && errno != EAGAIN) die("read");
+    }
+
+    return c;
+}
+
+
+int getWindowSize(int *rows, int *cols){
+    struct winsize ws;
+
+    if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
+        return -1;
+    } else {
+        *cols = ws.ws_col;
+        *rows = ws.ws_row;
+        return 0;
+    }
+}
+
+
+/*** output ***/
+
+void editorDrawRows() {
+  int y;
+  char name[] = "| Marisol |";
+  int namelen = sizeof(name) - 1;
+  for (int i = 0; i < namelen; i++) {
+    char c[4] = {name[i], '\r', '\n', '\0'};
+    write(STDOUT_FILENO, c, 3);
+  }
+
+//   for (y = 0; y < 24; y++) {
+//     write(STDOUT_FILENO, "~\r\n", 3);
+//   }
+}
+
+void editorRefreshScreen() {
+    write(STDOUT_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
+
+    editorDrawRows();
+
+    write(STDOUT_FILENO, "\x1b[H", 3);
+}
+
+/*** input  ***/
+
+void editorProcessKeypress() {
+    char c = editorReadKey();
+   
+    switch (CTRL_KEY(c)) {
+        case CTRL_KEY('q'):
+            write(STDOUT_FILENO, "\x1b[2J", 4);
+            write(STDOUT_FILENO, "\x1b[H", 3);
+            exit(0);
+            break;
+    }
+}
+
 /*** init ***/
 
 int main(){
     enableRawMode();
 
-    char c;
-
-    while (1){
-        c = '\0';
-        if (read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN) 
-            die("read");
-
-        if (c == 'q') break;    
-
-        if (iscntrl(c)){
-            printf("%d\r\n", c);
-        } else {
-            printf("%d ('%c')\r\n", c, c);
-        }
+    while (1) {
+        editorRefreshScreen();
+        editorProcessKeypress();
     }
     
     return 0;
