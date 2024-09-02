@@ -11,6 +11,8 @@
 
 /*** defines ***/
 
+#define MARISOL_VERSION "0.0.1"
+
 #define CTRL_KEY(k) ((k) & 0x1f)
 
 /*** data ***/
@@ -128,9 +130,27 @@ void editorDrawRows(struct abuf *ab) {
     int namelen = sizeof(name) - 1;
 
     for (int i = 0; i < E.screenrows; i++) {
-        char c[2] = {name[i % namelen], '\0'};
-        abAppend(ab, c, 1);
+        if (i == E.screenrows / 3) {
+            char welcome[80];
+            int welcomelen = snprintf(welcome, sizeof(welcome), "Marisol editor -- version %s", MARISOL_VERSION);
 
+            if (welcomelen > E.screencols) welcomelen = E.screencols;
+
+            int padding = (E.screencols - welcomelen) / 2;
+            if (padding) {
+                char c[2] = {name[i % namelen], '\0'};
+                abAppend(ab, c, 1);
+                padding--;
+            }
+
+            while (padding--) abAppend(ab, " ", 1);
+            abAppend(ab, welcome, welcomelen);
+        } else {
+            char c[2] = {name[i % namelen], '\0'};
+            abAppend(ab, c, 1);
+        }
+
+        abAppend(ab, "\x1b[K", 3);
         if (i < E.screenrows - 1) {
             abAppend(ab, "\r\n", 2);
         }
@@ -141,7 +161,6 @@ void editorRefreshScreen() {
     struct abuf ab = ABUF_INIT;
 
     abAppend(&ab, "\x1b[?25l", 6);
-    abAppend(&ab, "\x1b[2J", 4);
     abAppend(&ab, "\x1b[H", 3);
 
     editorDrawRows(&ab);
