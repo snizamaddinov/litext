@@ -1,2 +1,2 @@
-marisol: marisol.c
-    $(CC) marisol.c -o marisol -Wall -Wextra -pedantic -std=c99
+litext: litext.c
+    $(CC) litext.c -o litext -Wall -Wextra -pedantic -std=c99

@@ -12,7 +12,7 @@
 
 /*** defines ***/
 
-#define MARISOL_VERSION "0.0.1"
+#define LITEXT_VERSION "0.0.1"
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
@@ -204,7 +204,7 @@ void editorDrawRows(struct abuf *ab) {
         if (i >= E.numrows){
             if (i == E.screenrows / 3) {
                 char welcome[80];
-                int welcomelen = snprintf(welcome, sizeof(welcome), "Marisol editor -- version %s", MARISOL_VERSION);
+                int welcomelen = snprintf(welcome, sizeof(welcome), "Litext editor -- version %s", LITEXT_VERSION);
 
                 if (welcomelen > E.screencols) welcomelen = E.screencols;
 
