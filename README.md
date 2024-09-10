@@ -1,4 +1,4 @@
-# Marisol
+# Litext
 
 Litext is a lightweight text editor for the terminal, written in the C language.
 
