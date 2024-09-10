@@ -18,3 +18,7 @@ To install Marisol, follow these steps:
 ## License
 
 Marisol is released under the [MIT License](https://opensource.org/licenses/MIT).
+
+
+[![justforfunnoreally.dev badge](https://img.shields.io/badge/justforfunnoreally-dev-9ff)](https://justforfunnoreally.dev)
+

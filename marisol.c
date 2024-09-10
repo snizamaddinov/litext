@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>
 
@@ -29,10 +30,17 @@ enum editorKey {
 
 /*** data ***/
 
+typedef struct erow {
+    int size;
+    char *chars;
+} erow;
+
 struct editorConfig {
     int cx, cy;
     int screenrows;
     int screencols;
+    int numrows;
+    erow row;
     struct termios orig_termios;
 };
 
@@ -152,6 +160,18 @@ int getWindowSize(int *rows, int *cols){
     }
 }
 
+/*** file i/o ***/
+
+void editorOpen(){
+    char *line = "Hello, World!";
+    ssize_t linelen = strlen(line);
+
+    E.row.size = linelen;
+    E.row.chars = malloc(linelen + 1);
+    memcpy(E.row.chars, line, linelen);
+    E.row.chars[linelen] = '\0';
+    E.numrows = 1;
+}
 /*** append buffer ***/
 
 struct abuf {
@@ -177,29 +197,34 @@ void abFree(struct abuf *ab) {
 /*** output ***/
 
 void editorDrawRows(struct abuf *ab) {
-    int y;
     char name[] = "Can Durukan ";
     int namelen = sizeof(name) - 1;
-
+    
     for (int i = 0; i < E.screenrows; i++) {
-        if (i == E.screenrows / 3) {
-            char welcome[80];
-            int welcomelen = snprintf(welcome, sizeof(welcome), "Marisol editor -- version %s", MARISOL_VERSION);
+        if (i >= E.numrows){
+            if (i == E.screenrows / 3) {
+                char welcome[80];
+                int welcomelen = snprintf(welcome, sizeof(welcome), "Marisol editor -- version %s", MARISOL_VERSION);
 
-            if (welcomelen > E.screencols) welcomelen = E.screencols;
+                if (welcomelen > E.screencols) welcomelen = E.screencols;
 
-            int padding = (E.screencols - welcomelen) / 2;
-            if (padding) {
+                int padding = (E.screencols - welcomelen) / 2;
+                if (padding) {
+                    char c[2] = {name[i % namelen], '\0'};
+                    abAppend(ab, c, 1);
+                    padding--;
+                }
+
+                while (padding--) abAppend(ab, " ", 1);
+                abAppend(ab, welcome, welcomelen);
+            } else {
                 char c[2] = {name[i % namelen], '\0'};
                 abAppend(ab, c, 1);
-                padding--;
             }
-
-            while (padding--) abAppend(ab, " ", 1);
-            abAppend(ab, welcome, welcomelen);
         } else {
-            char c[2] = {name[i % namelen], '\0'};
-            abAppend(ab, c, 1);
+            int len = E.row.size;
+            if (len > E.screencols) len = E.screencols;
+            abAppend(ab, E.row.chars, len);
         }
 
         abAppend(ab, "\x1b[K", 3);
@@ -295,6 +320,7 @@ void editorProcessKeypress() {
 void initEditor() {
     E.cx = 0;
     E.cy = 0;
+    E.numrows = 0;
 
     if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
 }
@@ -302,6 +328,7 @@ void initEditor() {
 int main(){
     enableRawMode();
     initEditor();
+    editorOpen();
 
     while (1) {
         editorRefreshScreen();
